@@ -598,19 +598,25 @@ public class Calendar extends Controller {
       Map<Person, Integer> nightShifts = null;
       Set<Person> people = shiftsCalculatedCompetences.keySet();
       //Controllo se ci sono turni festivi assegnati...
+      //Un PersonCompetenceCodes con endDate a null rappresenta un periodo aperto
+      //a destra (competenza ancora attiva, senza scadenza) e deve essere
+      //considerato valido: senza questo controllo la lambda lanciava NPE
+      //causando un 500 sulla /calendar/recap.
       CompetenceCode holiday = competenceCodeDao.getCompetenceCodeByCode(holidayCode);
       List<PersonCompetenceCodes> list = people.stream()
           .flatMap(p -> p.getPersonCompetenceCodes().stream()
-              .filter(c -> c.getCompetenceCode().equals(holiday) 
-                  && !c.getBeginDate().isAfter(start) && !c.getEndDate().isBefore(end)))
+              .filter(c -> c.getCompetenceCode().equals(holiday)
+                  && !c.getBeginDate().isAfter(start)
+                  && (c.getEndDate() == null || !c.getEndDate().isBefore(end))))
           .collect(Collectors.toList());
-      
+
       //Controllo se ci sono turni notturni assegnati...
       CompetenceCode night = competenceCodeDao.getCompetenceCodeByCode(nightCode);
       List<PersonCompetenceCodes> nightList = people.stream()
           .flatMap(p -> p.getPersonCompetenceCodes().stream()
-              .filter(c -> c.getCompetenceCode().equals(night) 
-                  && !c.getBeginDate().isAfter(start) && !c.getEndDate().isBefore(end)))
+              .filter(c -> c.getCompetenceCode().equals(night)
+                  && !c.getBeginDate().isAfter(start)
+                  && (c.getEndDate() == null || !c.getEndDate().isBefore(end))))
           .collect(Collectors.toList());
 
       if (!list.isEmpty()) {
